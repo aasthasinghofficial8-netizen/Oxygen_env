@@ -10,6 +10,7 @@ My Env Environment Implementation.
 A simple test environment that echoes back messages sent to it.
 Perfect for testing HTTP server infrastructure.
 """
+from typing import Any
 import random
 import sys
 import os
@@ -22,9 +23,9 @@ from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
 
 try:
-    from models import MyAction, MyObservation
+    from .models import MyAction, MyObservation
 except ImportError:
-    from models import MyAction, MyObservation
+    from .models import MyAction, MyObservation
     import models
     MyAction = models.MyAction
     MyObservation = models.MyObservation
@@ -57,7 +58,7 @@ class MyEnvironment(Environment):
         self._state = State(episode_id=str(uuid4()), step_count=0)
         self.levels=[50.0, 50.0, 50.0]
 
-    def reset(self, task_id: str= "easy_stabilization") -> MyObservation:
+    def reset(self, task_id: str= "easy_stabilization") -> Any:
         """
         Reset the environment.
 

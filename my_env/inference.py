@@ -1,8 +1,9 @@
 import os
+import time 
 import json
 from openai import OpenAI
 from server.my_env_environment import MyEnvironment 
-from server.models import MyAction
+from server.models import MyAction,MyObservtion 
 
 API_BASE_URL = os.getenv("API_BASE_URL")
 API_KEY = os.getenv("OPENAI_API_KEY")
@@ -43,21 +44,21 @@ def run_task(task_id):
             obs=env.step(action)
             total_score+=obs.reward
 
-            print(f"[STEP] Hour {hour}: Reward={obs.reward:.2f}, Levels={obs.hospital_levels}")
+            print(f"[STEP] Hour {step}: Reward={obs.reward:.2f}, Levels={obs.hospital_levels}")
 
             if obs.done:
                 break
 
         except Exception as e:
-            print(f"Error at hour {hour}: {e}")
+            print(f"Error at hour {step}: {e}")
             break
 
     final_avg_reward = total_reward/24
     print(f"[END] Final Task Reward: {min(1.0,final_avg_reward):.2f}")
 
 if __name__=="__main__":
-    tasks = ["easy_stabilisation","medium_surge","hard_scarcity"]
+    tasks = ["easy_stabilization","medium_surge","hard_scarcity"]
 
     for tid in tasks:
-        run_hospital_simulation(tid)
+        run_task(tid)
         time.sleep(1)

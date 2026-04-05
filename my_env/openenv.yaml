@@ -5,7 +5,7 @@ runtime: fastapi
 app: server.app:app
 port: 8000
 tasks:
-  - id: "easy_stabilisation"
+  - id: "easy_stabilization"
     difficulty: "easy"
     description: "Keep oxygen levels steady with low demand."
   - id: "medium_surge"
