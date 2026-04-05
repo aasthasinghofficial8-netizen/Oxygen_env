@@ -57,7 +57,7 @@ class MyEnvironment(Environment):
         self._state = State(episode_id=str(uuid4()), step_count=0)
         self.levels=[50.0, 50.0, 50.0]
 
-    def reset(self) -> MyObservation:
+    def reset(self, task_id: str= "easy_stabilization") -> MyObservation:
         """
         Reset the environment.
 
@@ -65,14 +65,27 @@ class MyEnvironment(Environment):
             MyObservation with a ready message
         """
         self._state = State(episode_id=str(uuid4()), step_count=0)
-        self.levels=[50.0, 50.0, 50.0]
+        
+        if task_id == "easy_stabilization":
+            self.levels=[80.0,80.0,80.0]
+            self.usage_min, self.usage_max=2,5
+
+        elif task_id== "medium_surge":
+            self.levels=[50.0,50.0,50.0]
+            self.usage_min,self.usage_max=8,15
+
+        elif task_id=="hard_scarcity":
+            self.levels=[30.0,30.0,30.0]
+            self.usage_min,self.usage_max=12,25
+
+        self.current_task=task_id
 
         return MyObservation(
             hospital_levels=self.levels,
-            message="Emergency Response System Intialized. All tanks at 50%.",
+            message="Initialised {task_id}",
             done=False,
             reward=0.0,
-            metadata={}
+            metadata={"task":task_id}
         )
 
     def step(self, action: MyAction) -> MyObservation:  # type: ignore[override]
@@ -94,11 +107,11 @@ class MyEnvironment(Environment):
             self.levels[i]+=action.dispatches[i]
             self.levels[i]= max(0,min(100,self.levels[i]))
             if self.levels[i]<=0:
-                total_reward-=50
+                total_reward+=0.0
             elif self.levels[i]<20:
-                total_reward-=5
+                total_reward+=0.1
             else:
-                total_reward+=10
+                total_reward+=0.33
             
             is_done=self._state.step_count >=24
 
@@ -107,7 +120,7 @@ class MyEnvironment(Environment):
             message=f"Status at Hour{self._state.step_count}",
             done=is_done,
             reward=total_reward,
-            metadata={"levels_raw": self.levels}
+            metadata={}
         )
 
     @property

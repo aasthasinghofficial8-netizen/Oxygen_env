@@ -4,4 +4,13 @@ type: space
 runtime: fastapi
 app: server.app:app
 port: 8000
-
+tasks:
+  - id: "easy_stabilisation"
+    difficulty: "easy"
+    description: "Keep oxygen levels steady with low demand."
+  - id: "medium_surge"
+    difficulty: "medium"
+    description: "Manage a sudden spike in patient oxygen usage."
+  - id: "hard_scarcity"
+    difficulty: "hard"
+    description: "Prevent total failure during an oxygen shortage crisis."
