@@ -46,8 +46,8 @@ from server.my_env_environment import MyEnvironment
 
 # Create the app with web interface and README integration
 from pathlib import Path
-readme_path = Path(__file__).parent.parent / "README.md"
-readme_content = readme_path.read_text() if readme_path.exists() else "Oxygen Logistics Environment"
+readme_path = Path(__file__).parent / "README.md"
+
 app = create_app(
     MyEnvironment,
     MyAction,

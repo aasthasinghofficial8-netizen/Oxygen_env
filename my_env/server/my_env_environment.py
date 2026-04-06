@@ -119,13 +119,20 @@ class MyEnvironment(Environment):
                 total_reward+= 0.33
             
         is_done=self._state.step_count >=24
+        metadata = {}
+        if is_done:
+             # Success criteria: Were all hospitals above 20% at the end?
+             survived_hospitals = sum(1 for level in self.levels if level > 20)
+             # Final Score: 0.0, 0.33, 0.66, or 1.0
+             metadata["grader_score"] = survived_hospitals / 3.0 
+
 
         return MyObservation(
             hospital_levels=self.levels, 
             message=f"Status at Hour{self._state.step_count}",
             done=is_done,
             reward=total_reward,
-            metadata={}
+            metadata=metadata
         )
 
     @property

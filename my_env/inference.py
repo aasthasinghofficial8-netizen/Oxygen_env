@@ -1,30 +1,28 @@
 import os
 import time 
 import json
+import requests
 from openai import OpenAI
 from server.my_env_environment import MyEnvironment 
 from server.models import MyAction, MyObservation 
 
-API_BASE_URL = os.getenv("API_BASE_URL")
-API_KEY = os.getenv("OPENAI_API_KEY")
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+API_KEY = os.getenv("OPENAI_API_KEY", "any")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o")
 
-if API_BASE_URL:
-    client = OpenAI(base_url=API_BASE_URL,api_key=API_KEY)
-else:
-    client = OpenAI(api_key=API_KEY)
+client = OpenAI(base_url=f"{API_BASE_URL}/v1", api_key=API_KEY)
 
 def run_task(task_id):
-    env = MyEnvironment()
-    obs = env.reset(task_id=task_id)
-
     print(f"\n[START] Task: {task_id}")
+    reset_response = requests.post(f"{API_BASE_URL}/reset", json={"task_id": task_id})
+    obs_data = reset_response.json()
+    current_levels = obs_data.get("hospital_levels", [0.0, 0.0, 0.0])
 
     total_reward = 0
     for step in range(24):
         prompt = f"""
         Context: You are managing 3 Hospital Oxygen Tanks.
-        Current Levels: {obs.hospital_levels}(Scale 0-100).
+        Current Levels: {current_levels} (Scale 0-100).
         Goal: Keep all levels above 20% to save lives.and
         Task Difficulty: {task_id}
         Action: Decide how many units to dispatch to each [Hospital 1, Hospital 2, Hospital 3].
@@ -41,27 +39,27 @@ def run_task(task_id):
 
             content = json.loads(response.choices.message.content)
             dispatch_values = content.get("dispatches", [0.0,0.0,0.0])
+            step_response = requests.post(f"{API_BASE_URL}/step", json={"dispatches": dispatch_values})
+            obs_data = step_response.json()
+            levels = obs_data.get("hospital_levels")
+            reward = obs_data.get("reward", 0.0)
+            done = obs_data.get("done", False)
+            total_reward += reward
+            print(f"[STEP] Hour {step}: Reward={reward:.2f}, Levels={levels}")
+            
 
-            action = MyAction(dispatches=dispatch_values)
-
-            obs=env.step(action)
-            total_reward+=obs.reward
-
-            print(f"[STEP] Hour {step}: Reward={obs.reward:.2f}, Levels={obs.hospital_levels}")
-
-            if obs.done:
+            if done:
+                final_score = obs_data.get("metadata", {}).get("grader_score", total_reward/24)
                 break
 
         except Exception as e:
             print(f"Error at hour {step}: {e}")
             break
 
-    final_avg_reward = total_reward/24
-    print(f"[END] Final Task Reward: {min(1.0,final_avg_reward):.2f}")
-
-if __name__=="__main__":
-    tasks = ["easy_stabilization","medium_surge","hard_scarcity"]
-
+    print(f"[END] Final Task Reward: {min(1.0, final_score):.2f}")
+    
+if __name__ == "__main__":
+    tasks = ["easy_stabilization", "medium_surge", "hard_scarcity"]
     for tid in tasks:
         run_task(tid)
         time.sleep(1)
