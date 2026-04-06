@@ -7,15 +7,18 @@ from server.models import MyAction, MyObservation
 
 API_BASE_URL = os.getenv("API_BASE_URL")
 API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL_NAME = os.getenv("MODEL_NAME")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o")
 
-client = OpenAI(base_url=API_BASE_URL,api_key=API_KEY)
+if API_BASE_URL:
+    client = OpenAI(base_url=API_BASE_URL,api_key=API_KEY)
+else:
+    client = OpenAI(api_key=API_KEY)
 
 def run_task(task_id):
     env = MyEnvironment()
     obs = env.reset(task_id=task_id)
 
-    print(f"[START] Task:{task_id}")
+    print(f"\n[START] Task: {task_id}")
 
     total_reward = 0
     for step in range(24):
@@ -42,7 +45,7 @@ def run_task(task_id):
             action = MyAction(dispatches=dispatch_values)
 
             obs=env.step(action)
-            total_score+=obs.reward
+            total_reward+=obs.reward
 
             print(f"[STEP] Hour {step}: Reward={obs.reward:.2f}, Levels={obs.hospital_levels}")
 
