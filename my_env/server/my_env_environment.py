@@ -57,6 +57,9 @@ class MyEnvironment(Environment):
         """Initialize the my_env environment."""
         self._state = State(episode_id=str(uuid4()), step_count=0)
         self.levels=[50.0, 50.0, 50.0]
+        self.usage_min = 2.0
+        self.usage_max = 5.0
+        self.current_task = "easy_stabilization"
 
     def reset(self, task_id: str= "easy_stabilization") -> Any:
         """
