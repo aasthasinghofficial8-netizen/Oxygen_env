@@ -3,8 +3,6 @@ import time
 import json
 import requests
 from openai import OpenAI
-from server.my_env_environment import MyEnvironment 
-from server.models import MyAction, MyObservation 
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 API_KEY = os.getenv("OPENAI_API_KEY", "any")
@@ -37,7 +35,7 @@ def run_task(task_id):
                 response_format={"type": "json_object"}  
             )
 
-            content = json.loads(response.choices.message.content)
+            content = json.loads(response.choices[0].message.content)
             dispatch_values = content.get("dispatches", [0.0,0.0,0.0])
             step_response = requests.post(f"{API_BASE_URL}/step", json={"dispatches": dispatch_values})
             obs_data = step_response.json()
@@ -47,7 +45,7 @@ def run_task(task_id):
             total_reward += reward
             print(f"[STEP] Hour {step}: Reward={reward:.2f}, Levels={levels}")
             
-
+            final_score = total_reward / 24
             if done:
                 final_score = obs_data.get("metadata", {}).get("grader_score", total_reward/24)
                 break

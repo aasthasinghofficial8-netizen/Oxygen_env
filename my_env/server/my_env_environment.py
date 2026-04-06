@@ -25,7 +25,6 @@ from openenv.core.env_server.types import State
 try:
     from .models import MyAction, MyObservation
 except ImportError:
-    from .models import MyAction, MyObservation
     import models
     MyAction = models.MyAction
     MyObservation = models.MyObservation
