@@ -66,27 +66,28 @@ class MyEnvironment(Environment):
             MyObservation with a ready message
         """
         self._state = State(episode_id=str(uuid4()), step_count=0)
+        task = str(task_id).strip().lower()
+        if "hard" in task or task == "hard_scarcity":
+            self.levels = [30.0, 30.0, 30.0]
+            self.usage_min, self.usage_max=12, 25
+
+        elif "medium" in task or task == "medium_surge":
+            self.levels = [50.0,50.0,50.0]
+            self.usage_min,self.usage_max=8, 15
+
+        else:
+            self.levels = [80.0, 80.0, 80.0]
+            self.usage_min,self.usage_max= 2, 5
         
-        if task_id == "easy_stabilization":
-            self.levels=[80.0,80.0,80.0]
-            self.usage_min, self.usage_max=2,5
-
-        elif task_id== "medium_surge":
-            self.levels=[50.0,50.0,50.0]
-            self.usage_min,self.usage_max=8,15
-
-        elif task_id=="hard_scarcity":
-            self.levels=[30.0,30.0,30.0]
-            self.usage_min,self.usage_max=12,25
-
-        self.current_task=task_id
+        self.current_task = task
+        
 
         return MyObservation(
             hospital_levels=self.levels,
-            message="Initialised {task_id}",
+            message=f"Environment reset to {task}",
             done=False,
             reward=0.0,
-            metadata={"task":task_id}
+            metadata={"active_task": task}
         )
 
     def step(self, action: MyAction) -> MyObservation:  # type: ignore[override]
@@ -103,18 +104,18 @@ class MyEnvironment(Environment):
         total_reward =0.0
 
         for i in range(3):
-            usage=random.uniform(5,15)
+            usage=random.uniform(self.usage_min, self.usage_max)
             self.levels[i]-=usage
             self.levels[i]+=action.dispatches[i]
-            self.levels[i]= max(0,min(100,self.levels[i]))
-            if self.levels[i]<=0:
-                total_reward+=0.0
+            self.levels[i]= max(0, min(100,self.levels[i]))
+            if self.levels[i]<= 0:
+                total_reward+= 0.0
             elif self.levels[i]<20:
-                total_reward+=0.1
+                total_reward+= 0.1
             else:
-                total_reward+=0.33
+                total_reward+= 0.33
             
-            is_done=self._state.step_count >=24
+        is_done=self._state.step_count >=24
 
         return MyObservation(
             hospital_levels=self.levels, 

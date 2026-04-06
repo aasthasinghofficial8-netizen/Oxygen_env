@@ -24,4 +24,4 @@ class MyObservation(BaseModel):
     message: str
     done: bool
     reward: float
-    metadata: dict
+    metadata: dict = Field(default_factory=dict)

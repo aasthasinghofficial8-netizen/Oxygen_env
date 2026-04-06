@@ -44,6 +44,9 @@ except ModuleNotFoundError:
 
 
 # Create the app with web interface and README integration
+from pathlib import Path
+readme_path = Path(__file__).parent.parent / "README.md"
+readme_content = readme_path.read_text() if readme_path.exists() else "Oxygen Logistics Environment"
 app = create_app(
     MyEnvironment,
     MyAction,
@@ -75,14 +78,16 @@ def main(host: str = "0.0.0.0", port: int = 8000):
     uvicorn.run(app, host=host, port=port)
 
 
-if __name__=='__main__':
-    import argparse
 
+if __name__ == "__main__":
+    import argparse
     parser = argparse.ArgumentParser()
+    parser.add_argument("--host", type=str, default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
-    main(port=args.port)
-
+                            
+    main(host=args.host, port=args.port)
+        
 
 
 

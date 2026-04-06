@@ -3,7 +3,7 @@ import time
 import json
 from openai import OpenAI
 from server.my_env_environment import MyEnvironment 
-from server.models import MyAction,MyObservtion 
+from server.models import MyAction, MyObservation 
 
 API_BASE_URL = os.getenv("API_BASE_URL")
 API_KEY = os.getenv("OPENAI_API_KEY")
