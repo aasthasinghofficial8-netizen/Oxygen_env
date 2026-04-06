@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 
 class MyAction(BaseModel):
-    dispatches: list[int]
+    dispatches: list[float]
 
 
 class MyObservation(BaseModel):

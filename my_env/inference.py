@@ -23,7 +23,7 @@ def run_task(task_id):
         prompt = f"""
         Context: You are managing 3 Hospital Oxygen Tanks.
         Current Levels: {current_levels} (Scale 0-100).
-        Goal: Keep all levels above 20% to save lives.and
+        Goal: Keep all levels above 20% to save lives.
         Task Difficulty: {task_id}
         Action: Decide how many units to dispatch to each [Hospital 1, Hospital 2, Hospital 3].
         Constraint: Respond ONLY with a JSON object like: {{"dispatches": [10.0, 5.0, 20.0]}}
