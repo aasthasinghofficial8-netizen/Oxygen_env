@@ -18,6 +18,7 @@ def run_task(task_id):
     current_levels = obs_data.get("hospital_levels", [0.0, 0.0, 0.0])
 
     total_reward = 0
+    final_score = 0.0 
     for step in range(24):
         prompt = f"""
         Context: You are managing 3 Hospital Oxygen Tanks.
