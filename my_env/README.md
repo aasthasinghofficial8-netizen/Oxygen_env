@@ -11,243 +11,117 @@ tags:
   - openenv
 ---
 
-# My Env Environment
+# Hospital Oxygen Supply Management Environment
 
-A simple test environment that echoes back messages. Perfect for testing the env APIs as well as demonstrating environment usage patterns.
+An OpenEnv reinforcement learning environment simulating real-world hospital oxygen supply logistics. An AI agent decides how many oxygen cylinders to dispatch to 3 hospitals every hour to keep patients alive.
 
-## Quick Start
+## Motivation
 
-The simplest way to use the My Env environment is through the `MyEnv` class:
+Oxygen shortages in hospitals are a real crisis — witnessed globally during COVID-19. This environment models the logistics decision-making required to prevent oxygen levels from dropping below critical thresholds across multiple hospitals, with realistic constraints like supply limits, fluctuating patient counts, and delivery delays.
 
-```python
-from my_env import MyAction, MyEnv
+## Action Space
 
-try:
-    # Create environment from Docker image
-    my_envenv = MyEnv.from_docker_image("my_env-env:latest")
+**MyAction**
+- `dispatches` (list[float]) — Oxygen cylinders to send to each of 3 hospitals
+- Total across all hospitals capped at 30 cylinders per hour
+- Each hospital capped at 20 cylinders per hour
+- Example: `{"dispatches": [10.0, 12.0, 8.0]}`
 
-    # Reset
-    result = my_envenv.reset()
-    print(f"Reset: {result.observation.echoed_message}")
+## Observation Space
 
-    # Send multiple messages
-    messages = ["Hello, World!", "Testing echo", "Final message"]
+**MyObservation**
+- `hospital_levels` (list[float]) — Current oxygen levels at each hospital (0-100)
+- `patient_counts` (list[int]) — Current patient count at each hospital (affects consumption rate)
+- `pending_delivery` (list[float]) — Cylinders arriving next hour (delivery delay mechanic)
+- `message` (str) — Status message for current step
+- `reward` (float) — Reward earned this step
+- `done` (bool) — Whether episode is complete (24 hours)
+- `metadata` (dict) — Extra info including final `grader_score` at episode end
 
-    for msg in messages:
-        result = my_envenv.step(MyAction(message=msg))
-        print(f"Sent: '{msg}'")
-        print(f"  → Echoed: '{result.observation.echoed_message}'")
-        print(f"  → Length: {result.observation.message_length}")
-        print(f"  → Reward: {result.reward}")
+## Reward Function
 
-finally:
-    # Always clean up
-    my_envenv.close()
-```
+Per step, per hospital:
+- `0.33` — oxygen level above 20 (safe zone)
+- `0.10` — oxygen level below 20 but above 0 (critical zone)
+- `0.00` — oxygen level at 0 (hospital failure)
 
-That's it! The `MyEnv.from_docker_image()` method handles:
-- Starting the Docker container
-- Waiting for the server to be ready
-- Connecting to the environment
-- Container cleanup when you call `close()`
+Maximum possible reward per step = 0.99 (all 3 hospitals safe)
 
-## Building the Docker Image
+## Tasks
 
-Before using the environment, you need to build the Docker image:
+| Task ID | Difficulty | Starting Levels | Patient Count | Usage/Hour | Description |
+|---|---|---|---|---|---|
+| `easy_stabilization` | Easy | [80, 80, 80] | 10-20 | 2-5 units | Low demand, maintain steady levels |
+| `medium_surge` | Medium | [50, 50, 50] | 25-40 | 8-15 units | Sudden spike in patient oxygen usage |
+| `hard_scarcity` | Hard | [30, 30, 30] | 40-60 | 12-25 units | Prevent total failure during shortage crisis |
 
-```bash
-# From project root
-docker build -t my_env-env:latest -f server/Dockerfile .
-```
+## Grader
 
-## Deploying to Hugging Face Spaces
+At episode end (24 steps):
+- `grader_score` = hospitals above 20% / 3
+- All 3 safe → 1.0
+- 2 safe → 0.66
+- 1 safe → 0.33
+- 0 safe → 0.0
 
-You can easily deploy your OpenEnv environment to Hugging Face Spaces using the `openenv push` command:
+## Key Environment Mechanics
 
-```bash
-# From the environment directory (where openenv.yaml is located)
-openenv push
+**Supply Limit** — Agent cannot send unlimited cylinders. Total dispatch per hour is capped at 30, forcing real trade-off decisions between hospitals.
 
-# Or specify options
-openenv push --namespace my-org --private
-```
+**Delivery Delay** — Cylinders dispatched this hour arrive next hour. Agent must plan ahead, not just react.
 
-The `openenv push` command will:
-1. Validate that the directory is an OpenEnv environment (checks for `openenv.yaml`)
-2. Prepare a custom build for Hugging Face Docker space (enables web interface)
-3. Upload to Hugging Face (ensuring you're logged in)
+**Dynamic Patient Counts** — Patient counts change every hour, making oxygen consumption unpredictable. Agent must read current patient counts in observation to make smart decisions.
 
-### Prerequisites
+## Setup & Usage
 
-- Authenticate with Hugging Face: The command will prompt for login if not already authenticated
-
-### Options
-
-- `--directory`, `-d`: Directory containing the OpenEnv environment (defaults to current directory)
-- `--repo-id`, `-r`: Repository ID in format 'username/repo-name' (defaults to 'username/env-name' from openenv.yaml)
-- `--base-image`, `-b`: Base Docker image to use (overrides Dockerfile FROM)
-- `--private`: Deploy the space as private (default: public)
-
-### Examples
+### Local Development
 
 ```bash
-# Push to your personal namespace (defaults to username/env-name from openenv.yaml)
-openenv push
+git clone <your-repo-url>
+cd my_env
+pip install -r requirements.txt
+uvicorn app:app --host 0.0.0.0 --port 8000
 
-# Push to a specific repository
-openenv push --repo-id my-org/my-env
+Docker
 
-# Push with a custom base image
-openenv push --base-image ghcr.io/meta-pytorch/openenv-base:latest
+docker build -t my-env .
+docker run -p 8000:8000 my-env
 
-# Push as a private space
-openenv push --private
+Run Baseline Inference
 
-# Combine options
-openenv push --repo-id my-org/my-env --base-image custom-base:latest --private
-```
+export OPENAI_API_KEY=your_key
+export API_BASE_URL=http://localhost:8000
+export MODEL_NAME=gpt-4o
+export HF_TOKEN=your_hf_token
+python inference.py
 
-After deployment, your space will be available at:
-`https://huggingface.co/spaces/<repo-id>`
+Environment Variables
 
-The deployed space includes:
-- **Web Interface** at `/web` - Interactive UI for exploring the environment
-- **API Documentation** at `/docs` - Full OpenAPI/Swagger interface
-- **Health Check** at `/health` - Container health monitoring
-- **WebSocket** at `/ws` - Persistent session endpoint for low-latency interactions
+Variable-Description
+API_BASE_URL-API endpoint for the LLM
+MODEL_NAME-Model identifier for inference
+OPENAI_API_KEY-Your OpenAI API key
+HF_TOKEN-Your Hugging Face token
 
-## Environment Details
+Baseline Scores
 
-### Action
-**MyAction**: Contains a single field
-- `message` (str) - The message to echo back
+Task-Expected Score
+easy_stabilization- ~0.90
+medium_surge- ~0.66
+hard_scarcity- ~0.33
 
-### Observation
-**MyObservation**: Contains the echo response and metadata
-- `echoed_message` (str) - The message echoed back
-- `message_length` (int) - Length of the message
-- `reward` (float) - Reward based on message length (length × 0.1)
-- `done` (bool) - Always False for echo environment
-- `metadata` (dict) - Additional info like step count
+Project Structure
 
-### Reward
-The reward is calculated as: `message_length × 0.1`
-- "Hi" → reward: 0.2
-- "Hello, World!" → reward: 1.3
-- Empty message → reward: 0.0
-
-## Advanced Usage
-
-### Connecting to an Existing Server
-
-If you already have a My Env environment server running, you can connect directly:
-
-```python
-from my_env import MyEnv
-
-# Connect to existing server
-my_envenv = MyEnv(base_url="<ENV_HTTP_URL_HERE>")
-
-# Use as normal
-result = my_envenv.reset()
-result = my_envenv.step(MyAction(message="Hello!"))
-```
-
-Note: When connecting to an existing server, `my_envenv.close()` will NOT stop the server.
-
-### Using the Context Manager
-
-The client supports context manager usage for automatic connection management:
-
-```python
-from my_env import MyAction, MyEnv
-
-# Connect with context manager (auto-connects and closes)
-with MyEnv(base_url="http://localhost:8000") as env:
-    result = env.reset()
-    print(f"Reset: {result.observation.echoed_message}")
-    # Multiple steps with low latency
-    for msg in ["Hello", "World", "!"]:
-        result = env.step(MyAction(message=msg))
-        print(f"Echoed: {result.observation.echoed_message}")
-```
-
-The client uses WebSocket connections for:
-- **Lower latency**: No HTTP connection overhead per request
-- **Persistent session**: Server maintains your environment state
-- **Efficient for episodes**: Better for many sequential steps
-
-### Concurrent WebSocket Sessions
-
-The server supports multiple concurrent WebSocket connections. To enable this,
-modify `server/app.py` to use factory mode:
-
-```python
-# In server/app.py - use factory mode for concurrent sessions
-app = create_app(
-    MyEnvironment,  # Pass class, not instance
-    MyAction,
-    MyObservation,
-    max_concurrent_envs=4,  # Allow 4 concurrent sessions
-)
-```
-
-Then multiple clients can connect simultaneously:
-
-```python
-from my_env import MyAction, MyEnv
-from concurrent.futures import ThreadPoolExecutor
-
-def run_episode(client_id: int):
-    with MyEnv(base_url="http://localhost:8000") as env:
-        result = env.reset()
-        for i in range(10):
-            result = env.step(MyAction(message=f"Client {client_id}, step {i}"))
-        return client_id, result.observation.message_length
-
-# Run 4 episodes concurrently
-with ThreadPoolExecutor(max_workers=4) as executor:
-    results = list(executor.map(run_episode, range(4)))
-```
-
-## Development & Testing
-
-### Direct Environment Testing
-
-Test the environment logic directly without starting the HTTP server:
-
-```bash
-# From the server directory
-python3 server/my_env_environment.py
-```
-
-This verifies that:
-- Environment resets correctly
-- Step executes actions properly
-- State tracking works
-- Rewards are calculated correctly
-
-### Running Locally
-
-Run the server locally for development:
-
-```bash
-uvicorn server.app:app --reload
-```
-
-## Project Structure
-
-```
 my_env/
-├── .dockerignore         # Docker build exclusions
-├── __init__.py            # Module exports
-├── README.md              # This file
-├── openenv.yaml           # OpenEnv manifest
-├── pyproject.toml         # Project metadata and dependencies
-├── uv.lock                # Locked dependencies (generated)
-├── client.py              # MyEnv client
-├── models.py              # Action and Observation models
+├── app.py                     # FastAPI application
+├── inference.py               # Baseline inference script
+├── openenv.yaml               # OpenEnv manifest
+├── requirements.txt           # Dependencies
+├── Dockerfile                 # Container definition
+├── README.md                  # This file
 └── server/
-    ├── __init__.py        # Server module exports
-    ├── my_env_environment.py  # Core environment logic
-    ├── app.py             # FastAPI application
+    ├── __init__.py
+    ├── models.py              # Action and Observation models
+    └── my_env_environment.py  # Core environment logic
+
+---
