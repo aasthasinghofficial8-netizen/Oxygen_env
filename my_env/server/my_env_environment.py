@@ -72,20 +72,20 @@ class MyEnvironment(Environment):
             metadata={"active_task": task}
         )
 
-    def step(self, action: MyAction) -> MyObservation:  
+    def step(self, action: MyAction):  
         self._state.step_count += 1
         total_reward =0.0
 
         for i in range(3):
             self.levels[i] += self.pending_delivery[i]
             self.levels[i] = max(0, min(100, self.levels[i]))
+            self.pending_delivery = list(action.dispatches)
 
         for i in range(3):
             usage=random.uniform(self.usage_min, self.usage_max)
             patient_multiplier = self.patient_counts[i] / 20.0
             usage = usage * patient_multiplier
             self.levels[i]-=usage
-            self.levels[i]+=action.dispatches[i]
             self.levels[i]= max(0, min(100,self.levels[i]))
             if self.levels[i]<= 0:
                 total_reward+= 0.0
