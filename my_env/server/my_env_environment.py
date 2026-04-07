@@ -79,7 +79,8 @@ class MyEnvironment(Environment):
         for i in range(3):
             self.levels[i] += self.pending_delivery[i]
             self.levels[i] = max(0, min(100, self.levels[i]))
-            self.pending_delivery = list(action.dispatches)
+            
+        self.pending_delivery = list(action.dispatches)
 
         for i in range(3):
             usage=random.uniform(self.usage_min, self.usage_max)
