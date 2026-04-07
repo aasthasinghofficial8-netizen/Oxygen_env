@@ -250,6 +250,4 @@ my_env/
 └── server/
     ├── __init__.py        # Server module exports
     ├── my_env_environment.py  # Core environment logic
-    ├── app.py             # FastAPI application (HTTP + WebSocket endpoints)
-    └── Dockerfile         # Container image definition
-```
+    ├── app.py             # FastAPI application

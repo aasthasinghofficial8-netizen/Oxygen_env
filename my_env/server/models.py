@@ -1,26 +1,28 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the
-# LICENSE file in the root directory of this source tree.
 
-"""
-Data models for the My Env Environment.
-
-The my_env environment is a simple test environment that echoes back messages.
-"""
 
 from openenv.core.env_server.types import Action, Observation
-from pydantic import Field
+from pydantic import Field, validator
 from pydantic import BaseModel
 
 
 class MyAction(BaseModel):
     dispatches: list[float]
+    @validator('dispatches')
+    def cap_total_supply(cls, v):
+        # Cap each hospital at 20 max
+        v = [min(d, 20.0) for d in v]
+        # Cap total across all hospitals at 30
+        total = sum(v)
+        if total > 30.0:
+            scale = 30.0 / total
+            v = [d * scale for d in v]
+        return v
 
 
 class MyObservation(BaseModel):
     hospital_levels: list[float]
+    patient_counts: list[int]  
+    pending_delivery: list[float]
     message: str
     done: bool
     reward: float

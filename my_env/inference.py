@@ -22,9 +22,11 @@ def run_task(task_id):
     for step in range(24):
         prompt = f"""
         Context: You are managing 3 Hospital Oxygen Tanks.
-        Current Levels: {current_levels} (Scale 0-100).
-        Goal: Keep all levels above 20% to save lives.
+        Current Oxygen Levels: {current_levels} (Scale 0-100, critical below 20).
+        Current Patient Counts: {obs_data.get('patient_counts', [10,10,10])} (more patients = faster depletion).
+        Pending Delivery (arriving next hour): {obs_data.get('pending_delivery', [0,0,0])}.
         Task Difficulty: {task_id}
+        Supply Constraint: Total cylinders across all hospitals cannot exceed 30 per hour.
         Action: Decide how many units to dispatch to each [Hospital 1, Hospital 2, Hospital 3].
         Constraint: Respond ONLY with a JSON object like: {{"dispatches": [10.0, 5.0, 20.0]}}
         """
